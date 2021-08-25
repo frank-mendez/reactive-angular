@@ -1,36 +1,50 @@
-import {ChangeDetectionStrategy, Component, OnInit} from '@angular/core';
-import {Course} from '../model/course';
-import {Observable} from 'rxjs';
-import {CoursesStore} from '../services/courses.store';
-
+import { Component, OnInit } from "@angular/core";
+import { Course, sortCoursesBySeqNo } from "../model/course";
+import { MatDialog, MatDialogConfig } from "@angular/material/dialog";
+import { CourseDialogComponent } from "../course-dialog/course-dialog.component";
+import { CoursesService } from "../services/courses.service";
+import { Observable } from "rxjs";
+import { map } from "rxjs/operators";
 
 @Component({
-  selector: 'home',
-  templateUrl: './home.component.html',
-  styleUrls: ['./home.component.css'],
-  changeDetection: ChangeDetectionStrategy.OnPush
+  selector: "home",
+  templateUrl: "./home.component.html",
+  styleUrls: ["./home.component.css"],
 })
 export class HomeComponent implements OnInit {
-
   beginnerCourses$: Observable<Course[]>;
-
   advancedCourses$: Observable<Course[]>;
 
-  constructor(private coursesStore: CoursesStore) {
-
-  }
+  constructor(
+    private coursesService: CoursesService,
+    private dialog: MatDialog
+  ) {}
 
   ngOnInit() {
-      this.reloadCourses();
+    const courses$ = this.coursesService
+      .loadAllCourses()
+      .pipe(map((courses) => courses.sort(sortCoursesBySeqNo)));
+    this.beginnerCourses$ = courses$.pipe(
+      map((courses) =>
+        courses.filter((course) => course.category === "BEGINNER")
+      )
+    );
+    this.advancedCourses$ = courses$.pipe(
+      map((courses) =>
+        courses.filter((course) => course.category === "ADVANCED")
+      )
+    );
   }
 
-  reloadCourses() {
+  editCourse(course: Course) {
+    const dialogConfig = new MatDialogConfig();
 
-      this.beginnerCourses$ = this.coursesStore.filterByCategory("BEGINNER");
+    dialogConfig.disableClose = true;
+    dialogConfig.autoFocus = true;
+    dialogConfig.width = "400px";
 
-      this.advancedCourses$ = this.coursesStore.filterByCategory("ADVANCED");
+    dialogConfig.data = course;
+
+    const dialogRef = this.dialog.open(CourseDialogComponent, dialogConfig);
   }
-
 }
-
-
